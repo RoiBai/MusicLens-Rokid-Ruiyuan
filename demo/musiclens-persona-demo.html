@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MusicLens Persona Process Demo</title>
+  <style>
+    :root {
+      --bg: #090a0b;
+      --panel: rgba(12, 15, 18, 0.88);
+      --line: rgba(113, 226, 151, 0.28);
+      --green: #63e68e;
+      --blue: #7cb7ff;
+      --muted: #a8b1b7;
+      --text: #f4fbf6;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body { padding: 28px; }
+
+    .cover {
+      min-height: calc(100vh - 56px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(420px, 46vw);
+      gap: 28px;
+      align-items: stretch;
+      page-break-after: always;
+    }
+
+    .hero-copy {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(99, 230, 142, 0.08), rgba(255,255,255,0.02));
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 640px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 48px;
+      line-height: 1.04;
+      max-width: 900px;
+    }
+
+    .sub {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 820px;
+    }
+
+    .principles {
+      display: grid;
+      gap: 12px;
+      margin-top: 28px;
+      max-width: 900px;
+    }
+
+    .principles div,
+    .persona-card,
+    .process-block {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      padding: 14px 16px;
+    }
+
+    .wall-frame {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      min-height: 640px;
+      background: #000;
+    }
+
+    .wall-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0.82;
+    }
+
+    .focal {
+      position: absolute;
+      left: 50%;
+      top: 47%;
+      transform: translate(-50%, -50%);
+      max-width: 72%;
+      padding: 10px 16px;
+      background: rgba(0,0,0,0.43);
+      color: var(--green);
+      font-size: 32px;
+      line-height: 1.22;
+      font-weight: 750;
+      text-align: center;
+      text-shadow: 0 2px 16px #000;
+      border-radius: 7px;
+    }
+
+    .tiny {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.55);
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .persona-page {
+      min-height: calc(100vh - 56px);
+      display: grid;
+      grid-template-columns: 0.86fr 1.14fr;
+      gap: 20px;
+      page-break-after: always;
+      padding-top: 8px;
+    }
+
+    .left-col,
+    .right-col {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: 32px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      color: #d9ffe5;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.62;
+      font-size: 14px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .scene {
+      position: relative;
+      height: 330px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #000;
+    }
+
+    .scene img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.78;
+    }
+
+    .scene .focal {
+      font-size: 25px;
+      max-width: 78%;
+    }
+
+    .dismissed {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .dismissed span {
+      color: rgba(255,255,255,0.55);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      padding: 9px 10px;
+      font-size: 13px;
+      text-decoration: line-through;
+      text-decoration-color: rgba(255, 99, 99, 0.72);
+    }
+
+    .selected {
+      border-left: 3px solid var(--green);
+      padding-left: 14px;
+      color: #f2fff5;
+      font-size: 21px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .revision {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .revision div {
+      background: rgba(124, 183, 255, 0.08);
+      border: 1px solid rgba(124, 183, 255, 0.22);
+      padding: 12px;
+      min-height: 110px;
+    }
+
+    .revision strong {
+      display: block;
+      color: var(--blue);
+      margin-bottom: 7px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .verse {
+      font-size: 20px;
+      line-height: 1.72;
+      white-space: pre-line;
+      font-weight: 680;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      padding: 5px 8px;
+      border: 1px solid rgba(99, 230, 142, 0.28);
+      color: var(--green);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="hero-copy">
+      <div>
+        <h1>MusicLens: 一句歌魂，而不是一堆词</h1>
+        <p class="sub">同一面涂鸦墙，不同 persona 应该看见完全不同的世界。新的测试方向是：在人眼 focal point 周围弹出一句可重复、可延展、可成为副歌核心的句子。</p>
+        <div class="principles">
+          <div><strong>解决问题 1:</strong> 不再固定左下角，不再三行小字；主句在焦点附近轻微呼吸，左下只保留小的视角标签。</div>
+          <div><strong>解决问题 2:</strong> 不输出无聊 pop-up 词，而输出一条能长成歌的 song-core sentence。</div>
+          <div><strong>解决问题 3:</strong> 每个角色从背景、记忆、语言节奏里生成自己的 perspective engine，避免所有人都只是 generic emo。</div>
+        </div>
+      </div>
+      <div>
+        <span class="tag">same image</span>
+        <span class="tag">six lenses</span>
+        <span class="tag">dismiss -> select -> rewrite -> verse</span>
+      </div>
+    </div>
+    <div class="wall-frame">
+      <img src="./graffiti-wall.png" alt="graffiti wall" />
+      <div class="focal">墙没有说出口的名字，替我唱成了回声</div>
+      <div class="tiny">Focal song-core overlay</div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>周杰伦</h2>
+        <p class="meta">家喻户晓歌手 / 华语流行、R&B、嘻哈、古典采样</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>从街头、篮球场、练琴房和录音棚长出来的人。对城市的旧物、方言、少年感和家庭记忆特别敏感；习惯把宏大的情绪藏进很生活的物件里，让旋律先走，文字在节拍里拐弯。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>中文口语 + 内韵 + R&B 切分；一点酷、一点怀旧、一点不直说。句子要能被重复，像副歌前的 hook，不要直白喊痛。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>街头像梦</span><span>颜色在哭</span><span>青春涂鸦</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">你把名字喷歪了，我却跟着唱准了</div>
+        <div class="tiny">周杰伦 VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">你把名字喷歪了，我却跟着唱准了</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>“喷歪”变成少年犯错；“唱准”变成音乐替他修正人生。</p></div>
+          <div><strong>重复</strong><p>把“你喷歪 / 我唱准”做成 call-and-response 的副歌骨架。</p></div>
+          <div><strong>发散</strong><p>加入墙、巷口、拍子和名字，保留酷感但让情绪往回忆走。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">你把名字喷歪了，我却跟着唱准了
+巷口的拍子慢半格，心跳刚好补上了
+墙上那句没人懂的，我用副歌认领了
+喷歪了，唱准了，原来青春没走错</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>Billie Eilish</h2>
+        <p class="meta">家喻户晓歌手 / Alternative pop、whisper vocal、dark minimal production</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>卧室录音、低声、近距离麦克风和不安的身体感构成她的视角。她不会把墙看成“漂亮街头艺术”，而会看成一个太近的秘密，一层层被盖住的呼吸。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>极简、低声、危险又亲密；英文短句有留白，像耳边说话。重复要像困在脑内的 whisper，不要大声宣泄。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>broken colors</span><span>city screams</span><span>painted sadness</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">I hide my name where the wall forgets to breathe</div>
+        <div class="tiny">Billie Eilish VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">I hide my name where the wall forgets to breathe</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>名字不是身份展示，而是藏匿；墙的层次变成窒息感。</p></div>
+          <div><strong>重复</strong><p>重复 “don’t say it” 和 “where the wall forgets” 制造低声循环。</p></div>
+          <div><strong>发散</strong><p>把涂鸦、呼吸、名字和沉默收进一个 claustrophobic hook。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">I hide my name where the wall forgets to breathe
+Don’t say it back, don’t make it real for me
+Paint over paint, but it still knows underneath
+I hide my name where the wall forgets to breathe</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>Beyoncé</h2>
+        <p class="meta">家喻户晓歌手 / Pop、R&B、舞台宣言、合唱感与身体律动</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>舞台、家族、女性力量、南方节奏和集体呼喊是她的坐标。她看见涂鸦墙，会先看见谁被写下、谁被抹掉，以及如何把私人名字变成众人的队形。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>强节拍、宣言式、可被 crowd 反复唱。句子要有身体动作和主权感，不是哀伤，而是把墙变成舞台。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>I am strong</span><span>paint my crown</span><span>queen wall</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">They tried to cover me, I turned the wall into a choir</div>
+        <div class="tiny">Beyoncé VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">They tried to cover me, I turned the wall into a choir</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>“cover” 是压制，“choir” 是集体声量；墙从遮盖变成合唱。</p></div>
+          <div><strong>重复</strong><p>重复 “cover me / choir” 形成台上台下可回应的 hook。</p></div>
+          <div><strong>发散</strong><p>加入脚步、掌声、名字，变成主题歌的主旋律口号。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">They tried to cover me, I turned the wall into a choir
+Step on the concrete, lift my name a little higher
+If they paint over us, we come back louder
+Cover me, cover me, I turn it into fire</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>雾港钟表师</h2>
+        <p class="meta">虚拟人物 / 港口机械民谣、慢拍、旧金属与潮湿记忆</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>住在常年起雾的旧港口，替出海的人修怀表。父亲在一次台风夜没有回来，所以他把每个坏掉的齿轮都当成没能准时抵达的人。说话慢，爱用时间、锈、盐和回声。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>低沉、机械、民谣式重复；像一首给失踪者的海边主题歌。不要赛博，不要华丽，句子要有潮湿的重量。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>墙很旧</span><span>时间破碎</span><span>海风孤独</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">墙上的每层漆，都像晚归的人慢了一秒</div>
+        <div class="tiny">雾港钟表师 VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">墙上的每层漆，都像晚归的人慢了一秒</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>“层层漆”变成年份；“慢一秒”对应钟表师的核心创伤。</p></div>
+          <div><strong>重复</strong><p>用“慢一秒”做每行尾部回环，制造旧表摆动感。</p></div>
+          <div><strong>发散</strong><p>把涂鸦墙延展成港口名单，每层颜色都是未归的人。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">墙上的每层漆，都慢了一秒
+我替晚归的人，把齿轮拧到很小
+名字被新的颜色盖掉
+可潮声还在，慢一秒，慢一秒</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>沙漠电台少女</h2>
+        <p class="meta">虚拟人物 / Lo-fi desert pop、无线电噪声、明亮孤勇</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>在移动沙丘边长大，守着一台能收到陌生人留言的旧电台。她没有固定故乡，靠频率认路。她看涂鸦墙会想到信号、坐标、被风抹掉又重新发出的呼叫。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>明亮、跳动、带一点失真；像夜里开车听到的主题歌。句子要能反复唱出“我还在发送”的生命力。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>彩色远方</span><span>孤独信号</span><span>风吹过墙</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">他们把我盖掉，我就换个频率发光</div>
+        <div class="tiny">沙漠电台少女 VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">他们把我盖掉，我就换个频率发光</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>“盖掉”是被遮蔽，“换频率”是她的人物能力。</p></div>
+          <div><strong>重复</strong><p>副歌反复唱“换个频率发光”，旋律上扬。</p></div>
+          <div><strong>发散</strong><p>加入电台、坐标、沙丘，把墙变成一块城市接收器。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">他们把我盖掉，我就换个频率发光
+沙丘听见城市，把坐标寄到墙上
+滋啦一声，我还在中央
+换个频率，换个频率发光</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="persona-page">
+    <div class="left-col">
+      <div class="persona-card">
+        <h2>赛博戏班遗孤</h2>
+        <p class="meta">虚拟人物 / 电子戏曲、破损霓虹、身份伪装与变声器</p>
+      </div>
+      <div class="process-block">
+        <h3>1. 角色故事背景</h3>
+        <p>出生在未来城市最后一个流动戏班，戏班被商业系统收购后解散。他带着祖母留下的脸谱和变声器在地下表演。看见墙，会看见身份被覆盖、脸被重画、声音从缝里逃出来。</p>
+      </div>
+      <div class="process-block">
+        <h3>2. 想写的风格</h3>
+        <p>电子低频 + 戏曲拖腔 + 突然断裂的口语。句子要有“脸/声/码/戏”的冲突，但不要变成普通 cyberpunk 口号。</p>
+      </div>
+      <div class="process-block">
+        <h3>Dismissed</h3>
+        <div class="dismissed"><span>霓虹破碎</span><span>代码孤儿</span><span>面具哭了</span></div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="scene">
+        <img src="./graffiti-wall.png" alt="graffiti wall" />
+        <div class="focal">你们改我的脸，我偏把声音留在墙缝里</div>
+        <div class="tiny">赛博戏班遗孤 VIEW</div>
+      </div>
+      <div class="process-block">
+        <h3>3. Pop-up 句子</h3>
+        <p class="selected">你们改我的脸，我偏把声音留在墙缝里</p>
+      </div>
+      <div class="process-block">
+        <h3>4. 修改与延展</h3>
+        <div class="revision">
+          <div><strong>提取</strong><p>“改脸”是身份被重写；“墙缝里的声音”是戏班遗留。</p></div>
+          <div><strong>重复</strong><p>把“改我的脸 / 留我的声”做成电子戏曲对句。</p></div>
+          <div><strong>发散</strong><p>加入脸谱、变声器、后台灯，形成主题歌的反抗旋律。</p></div>
+        </div>
+      </div>
+      <div class="process-block">
+        <h3>Selected Verse</h3>
+        <p class="verse">你们改我的脸，我偏留下我的声
+后台灯一灭，墙缝替我开嗓门
+脸谱被刷成新的编号
+可我一拖腔，旧戏班就回魂</p>
+      </div>
+    </div>
+  </section>
+  <script>
+    const slide = new URLSearchParams(window.location.search).get("slide");
+    if (slide !== null) {
+      const index = Number(slide);
+      const sections = Array.from(document.querySelectorAll("section"));
+      sections.forEach((section, sectionIndex) => {
+        section.style.display = sectionIndex === index ? "" : "none";
+        section.style.pageBreakAfter = "auto";
+      });
+      document.body.style.padding = "24px";
+      document.documentElement.style.background = "#090a0b";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicLens Voiceover Generator</title>
+    <style>
+      :root {
+        --bg: #050606;
+        --panel: #0a120f;
+        --line: rgba(100, 224, 138, 0.25);
+        --green: #74f29a;
+        --muted: #98a3a0;
+        --text: #eaf7ee;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(180deg, #020303, var(--bg));
+        color: var(--text);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 22px 18px 30px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 32px;
+        line-height: 1.2;
+        color: var(--green);
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(14, 20, 18, 0.88);
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+
+      .status {
+        margin-top: 10px;
+        color: #d6ffe4;
+        font-weight: 600;
+      }
+
+      .toolbar {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      }
+
+      .button {
+        border: 1px solid rgba(116, 242, 154, 0.45);
+        background: rgba(116, 242, 154, 0.12);
+        color: #d6ffe4;
+        border-radius: 9px;
+        height: 44px;
+        cursor: pointer;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      label {
+        font-size: 13px;
+        color: #c9f8d9;
+        display: grid;
+        gap: 6px;
+      }
+
+      select,
+      input[type="range"],
+      textarea {
+        width: 100%;
+        border: 1px solid rgba(116, 242, 154, 0.4);
+        background: #08100d;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 360px;
+        border-radius: 10px;
+        padding: 12px;
+        line-height: 1.55;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .line {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 14px;
+        padding: 10px 12px;
+        border: 1px solid rgba(148, 255, 179, 0.15);
+        border-radius: 10px;
+      }
+
+      .line.active {
+        border-color: #74f29a;
+        background: rgba(116, 242, 154, 0.12);
+      }
+
+      .time {
+        color: #b8ffe0;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .text {
+        color: #f6fff8;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>MusicLens Voiceover Studio</h1>
+      <p>
+        Paste your script and generate a soft female TTS voiceover. This page runs locally in browser
+        using SpeechSynthesis, then plays each segment in order.
+      </p>
+
+      <div class="card">
+        <div class="meta">
+          <label>
+            Voice
+            <select id="voiceSelect" aria-label="Voice Select"></select>
+          </label>
+          <label>
+            Rate
+            <input id="rate" type="range" min="0.72" max="1.2" step="0.02" value="0.93" />
+          </label>
+          <label>
+            Pitch
+            <input id="pitch" type="range" min="0.8" max="1.3" step="0.05" value="1" />
+          </label>
+          <label>
+            Pause gap (ms)
+            <input id="gap" type="range" min="0" max="1500" step="50" value="420" />
+          </label>
+        </div>
+
+        <textarea id="scriptInput"></textarea>
+
+        <div class="toolbar">
+          <button class="button" id="loadDefault">Load Demo Voiceover Script</button>
+          <button class="button" id="buildTimeline">Build Timeline From Text</button>
+          <button class="button" id="playAll">Play All</button>
+          <button class="button" id="pauseBtn" disabled>Pause</button>
+          <button class="button" id="resumeBtn" disabled>Resume</button>
+          <button class="button" id="stopBtn" disabled>Stop</button>
+        </div>
+        <div class="status" id="status">Status: waiting for input</div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0;color:#d8ffe8;font-size:20px;">Parsed Timeline</h2>
+        <div class="hint">Format: [0:00-0:08] Sentence text. You can keep blank lines and freeform style.</div>
+        <div id="timeline" class="timeline"></div>
+      </div>
+
+      <div class="hint">
+        Tip: on macOS, choose a female English voice in the selector (for example "Samantha", "Moira", "Tessa", "Nicky", "Karen", etc.).
+      </div>
+    </div>
+
+    <script>
+      const demoLines = [
+        { time: "0:00-0:08", text: "This is the music Lens demo video. I’ll begin in the desktop setup and choose my active persona: Desert Radio Girl." },
+        { time: "0:08-0:16", text: "Her style is tuned for sensory, signal-driven lyric writing — short, image-first lines that can grow into strong song hooks." },
+        { time: "0:16-0:24", text: "I set the lyric constraints, rhythm feel, and emotional pace, then launch the session mode. The interface shifts to a transparent overlay so the real world remains visible." },
+        { time: "0:24-0:30", text: "I set the lyric constraints, rhythm feel, and emotional pace, then launch the session mode. Green cue text appears near the eye focus, and I enter a new scene by the sea." },
+        { time: "0:30-0:42", text: "I press Down once to capture the scene and start a fresh sentence cycle. The system captures the frame, and a first line appears right at my focus point." },
+        { time: "0:42-0:54", text: "Loading shows, then the first line appears. I like the texture, but I want a different angle." },
+        { time: "0:54-1:06", text: "I press Up to reload from the same visual context. The model rewrites the sentence from the same scene." },
+        { time: "1:06-1:16", text: "I reload once more with Up. A second revision appears, and this direction begins to match the character better." },
+        { time: "1:16-1:28", text: "I press Left to extend the anchor into the next line. After a short generation moment, the expanded line comes in, ready to build a deeper hook." },
+        { time: "1:28-1:40", text: "I press Left again to turn this into a full four-line verse. Now we have a compact, repeatable lyric core shaped for chorus flow." },
+        { time: "1:40-1:48", text: "If needed, I can still press Up once more to revise the verse from the same idea. I keep refining until the cadence and emotion lock in." },
+        { time: "1:48-1:56", text: "The verse is complete and feels right. I press Left to save." },
+        { time: "1:56-2:00", text: "The screen clears for the next scene. At the end of the day, after I return from my walk, I open all today's saved inspirations on the desktop and refine them there. Thank you." },
+      ];
+
+      const scriptInput = document.getElementById("scriptInput");
+      const timelineContainer = document.getElementById("timeline");
+      const status = document.getElementById("status");
+      const voiceSelect = document.getElementById("voiceSelect");
+      const rateInput = document.getElementById("rate");
+      const pitchInput = document.getElementById("pitch");
+      const gapInput = document.getElementById("gap");
+      const playAllBtn = document.getElementById("playAll");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const resumeBtn = document.getElementById("resumeBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const loadDefaultBtn = document.getElementById("loadDefault");
+      const buildTimelineBtn = document.getElementById("buildTimeline");
+
+      let voices = [];
+      let activeUtterance = null;
+      let cancelled = false;
+      let isPaused = false;
+      let timeline = [];
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function refreshVoices() {
+        voices = window.speechSynthesis.getVoices();
+        const prevValue = voiceSelect.value;
+        voiceSelect.innerHTML = "";
+
+        if (!voices.length) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "Default System Voice";
+          voiceSelect.appendChild(opt);
+          return;
+        }
+
+        voices.forEach((voice, index) => {
+          const opt = document.createElement("option");
+          opt.value = String(index);
+          opt.textContent = `${voice.name} (${voice.lang})${voice.default ? " — default" : ""}`;
+          voiceSelect.appendChild(opt);
+        });
+
+        const pickFemale = voices.findIndex(v => /female|samantha|kate|siri|victoria|ava|moira|nicky|tessa|jasmine|female/i.test(v.name));
+        if (pickFemale >= 0) {
+          voiceSelect.value = String(pickFemale);
+        } else if (prevValue && [...voiceSelect.options].some((o) => o.value === prevValue)) {
+          voiceSelect.value = prevValue;
+        } else {
+          const firstEnglish = voices.findIndex(v => v.lang.toLowerCase().startsWith("en"));
+          if (firstEnglish >= 0) {
+            voiceSelect.value = String(firstEnglish);
+          } else {
+            voiceSelect.value = "0";
+          }
+        }
+      }
+
+      function parseScript(rawText) {
+        const lines = rawText
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const parsed = [];
+        for (const line of lines) {
+          const match = line.match(/^\[(\d+:\d{2}-\d+:\d{2})\]\s*(.*)$/);
+          if (match) {
+            parsed.push({ time: match[1], text: match[2].trim() });
+            continue;
+          }
+          if (parsed.length === 0) {
+            parsed.push({ time: "0:00-?", text: line });
+          } else {
+            parsed[parsed.length - 1].text += " " + line;
+          }
+        }
+        return parsed;
+      }
+
+      function renderTimeline() {
+        timelineContainer.innerHTML = "";
+        timeline.forEach((item, idx) => {
+          const row = document.createElement("div");
+          row.className = "line";
+          row.dataset.index = String(idx);
+          row.innerHTML = `<div class=\"time\">${escapeHtml(item.time)}</div><div class=\"text\">${escapeHtml(item.text)}</div>`;
+          timelineContainer.appendChild(row);
+        });
+      }
+
+      function clearActiveLine() {
+        timelineContainer.querySelectorAll(".line").forEach(node => node.classList.remove("active"));
+      }
+
+      function speak(text, idx) {
+        return new Promise((resolve) => {
+          if (cancelled) {
+            resolve();
+            return;
+          }
+
+          const row = timelineContainer.querySelector(`[data-index=\"${idx}\"]`);
+          if (row) row.classList.add("active");
+
+          const utterance = new SpeechSynthesisUtterance(text);
+          activeUtterance = utterance;
+
+          if (voices.length && voiceSelect.value !== "") {
+            const selected = voices[Number(voiceSelect.value)];
+            if (selected) utterance.voice = selected;
+          }
+
+          utterance.lang = "en-US";
+          utterance.rate = Number(rateInput.value);
+          utterance.pitch = Number(pitchInput.value);
+          utterance.volume = 1;
+
+          utterance.onend = () => {
+            if (row) row.classList.remove("active");
+            activeUtterance = null;
+            if (cancelled) {
+              resolve();
+              return;
+            }
+            const delay = Number(gapInput.value);
+            if (delay > 0) {
+              setTimeout(() => resolve(), delay);
+            } else {
+              resolve();
+            }
+          };
+
+          utterance.onerror = () => {
+            if (row) row.classList.remove("active");
+            activeUtterance = null;
+            resolve();
+          };
+
+          window.speechSynthesis.speak(utterance);
+        });
+      }
+
+      async function playSequence() {
+        if (!timeline.length) {
+          status.textContent = "Status: please load a valid script first.";
+          return;
+        }
+
+        cancelled = false;
+        isPaused = false;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+        resumeBtn.disabled = true;
+        playAllBtn.disabled = true;
+        loadDefaultBtn.disabled = true;
+        buildTimelineBtn.disabled = true;
+        status.textContent = "Status: generating...";
+
+        for (let i = 0; i < timeline.length; i += 1) {
+          if (cancelled) break;
+
+          await speak(timeline[i].text, i);
+          while (isPaused && !cancelled) {
+            await new Promise((resolve) => setTimeout(resolve, 120));
+          }
+        }
+
+        clearActiveLine();
+        status.textContent = cancelled ? "Status: stopped." : "Status: finished.";
+        playAllBtn.disabled = false;
+        loadDefaultBtn.disabled = false;
+        buildTimelineBtn.disabled = false;
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = true;
+        stopBtn.disabled = true;
+      }
+
+      loadDefaultBtn.addEventListener("click", () => {
+        const text = demoLines.map(item => `[${item.time}] ${item.text}`).join("\n");
+        scriptInput.value = text;
+      });
+
+      buildTimelineBtn.addEventListener("click", () => {
+        const parsed = parseScript(scriptInput.value || "");
+        timeline = parsed;
+        renderTimeline();
+        status.textContent = `Status: timeline built with ${timeline.length} line(s).`;
+      });
+
+      playAllBtn.addEventListener("click", () => {
+        playSequence();
+      });
+
+      pauseBtn.addEventListener("click", () => {
+        isPaused = true;
+        window.speechSynthesis.pause();
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = false;
+        status.textContent = "Status: paused.";
+      });
+
+      resumeBtn.addEventListener("click", () => {
+        isPaused = false;
+        window.speechSynthesis.resume();
+        pauseBtn.disabled = false;
+        resumeBtn.disabled = true;
+        status.textContent = "Status: resumed.";
+      });
+
+      stopBtn.addEventListener("click", () => {
+        cancelled = true;
+        isPaused = false;
+        window.speechSynthesis.cancel();
+        clearActiveLine();
+        status.textContent = "Status: stopping...";
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = true;
+        stopBtn.disabled = true;
+        playAllBtn.disabled = false;
+        loadDefaultBtn.disabled = false;
+        buildTimelineBtn.disabled = false;
+      });
+
+      if ('speechSynthesis' in window) {
+        refreshVoices();
+        window.speechSynthesis.onvoiceschanged = refreshVoices;
+      } else {
+        status.textContent = "Status: your browser does not support SpeechSynthesis.";
+        playAllBtn.disabled = true;
+      }
+
+      // initialize default script + timeline
+      scriptInput.value = demoLines.map(item => `[${item.time}] ${item.text}`).join("\n");
+      timeline = demoLines.slice();
+      renderTimeline();
+      status.textContent = "Status: ready.";
+    </script>
+  </body>
+</html>
